@@ -59,6 +59,12 @@ jobs:
       max-parallel: 10
       matrix:
         repo: ${{ fromJson(needs.list-repos.outputs.repos) }}
+        exclude:
+          - repo: phpstan/phpstan-shim
+          - repo: phpstan/phpstan-src
+          - repo: phpstan/phpstan-phar-composer-source
+          - repo: phpstan/vim-phpstan
+          - repo: phpstan/.github
     steps:
       - name: "Get default branch of target repository"
         id: default-branch
