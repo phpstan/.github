@@ -76,11 +76,11 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.PHPSTAN_BOT_TOKEN }}
           trigger_phrase: "@phpstan-bot"
-          prompt: |
-            You are working on the repository ${{ matrix.repo }}.
+          claude_args: >-
+            --model claude-opus-4-6
+            --custom-instructions "You are working on the repository ${{ matrix.repo }}.
             After making changes, you must create a pull request (not a draft) with your changes.
-            Do not just push a branch — always open a real, non-draft pull request so the changes can be reviewed and merged.
-          claude_args: "--model claude-opus-4-6"
+            Do not just push a branch — always open a real, non-draft pull request so the changes can be reviewed and merged."
           bot_name: "phpstan-bot"
           bot_id: "79867460"
           additional_permissions: |
