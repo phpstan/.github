@@ -1,0 +1,83 @@
+name: "Claude Org-wide Agent"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: claude-org-wide-${{ github.event.issue.number }}-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
+jobs:
+  check-trigger:
+    name: "Check trigger phrase and eligibility"
+    if: github.event.issue.number == 2
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      triggered: ${{ steps.check.outputs.triggered }}
+    steps:
+      - name: "Check for trigger phrase"
+        id: check
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          if echo "$COMMENT_BODY" | grep -qF "@phpstan-bot"; then
+            echo "triggered=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "triggered=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  list-repos:
+    name: "List public repositories"
+    needs: check-trigger
+    if: needs.check-trigger.outputs.triggered == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      repos: ${{ steps.list.outputs.repos }}
+    steps:
+      - name: "List all public repositories in the organization"
+        id: list
+        env:
+          GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+        run: |
+          repos=$(gh api --paginate "/orgs/${{ github.repository_owner }}/repos?type=public&per_page=100" \
+            --jq '[.[].full_name]' | jq -s 'add')
+          echo "repos=$repos" >> "$GITHUB_OUTPUT"
+
+  run-on-repo:
+    name: "Run on ${{ matrix.repo }}"
+    needs: [check-trigger, list-repos]
+    if: needs.check-trigger.outputs.triggered == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        repo: ${{ fromJson(needs.list-repos.outputs.repos) }}
+    steps:
+      - name: "Checkout target repository"
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+
+      - name: "Run Claude Code on repository"
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+          trigger_phrase: "@phpstan-bot"
+          claude_args: "--model claude-opus-4-6"
+          bot_name: "phpstan-bot"
+          bot_id: "79867460"
+          additional_permissions: |
+            actions: read
