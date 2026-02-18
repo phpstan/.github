@@ -10,10 +10,6 @@ permissions:
   issues: write
   actions: read
 
-concurrency:
-  group: claude-org-wide-${{ github.event.issue.number }}-${{ github.event.comment.id }}
-  cancel-in-progress: false
-
 jobs:
   check-trigger:
     name: "Check trigger phrase and eligibility"
