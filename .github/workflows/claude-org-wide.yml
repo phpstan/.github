@@ -64,10 +64,19 @@ jobs:
       matrix:
         repo: ${{ fromJson(needs.list-repos.outputs.repos) }}
     steps:
+      - name: "Get default branch of target repository"
+        id: default-branch
+        env:
+          GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+        run: |
+          default_branch=$(gh api "repos/${{ matrix.repo }}" --jq '.default_branch')
+          echo "branch=$default_branch" >> "$GITHUB_OUTPUT"
+
       - name: "Checkout target repository"
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.repo }}
+          ref: ${{ steps.default-branch.outputs.branch }}
           token: ${{ secrets.PHPSTAN_BOT_TOKEN }}
 
       - name: "Run Claude Code on repository"
