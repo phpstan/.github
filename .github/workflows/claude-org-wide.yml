@@ -88,6 +88,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.PHPSTAN_BOT_TOKEN }}
           trigger_phrase: "@phpstan-bot"
+          base_branch: ${{ steps.default-branch.outputs.branch }}
           claude_args: >-
             --model claude-opus-4-6
             --custom-instructions "You are working on the repository ${{ matrix.repo }}.
