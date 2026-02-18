@@ -49,7 +49,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
         run: |
           repos=$(gh api --paginate "/orgs/${{ github.repository_owner }}/repos?type=public&per_page=100" \
-            --jq '[.[].full_name]' | jq -s 'add')
+            --jq '[.[].full_name]' | jq -s -c 'add')
           echo "repos=$repos" >> "$GITHUB_OUTPUT"
 
   run-on-repo:
