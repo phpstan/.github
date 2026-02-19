@@ -97,6 +97,12 @@ jobs:
           git config user.name "phpstan-bot"
           git config user.email "phpstan-bot <ondrej+phpstanbot@mirtes.cz>"
 
+      - name: "Record existing PRs"
+        env:
+          GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+        run: |
+          gh pr list --repo "${{ matrix.repo }}" --state open --json number --jq '.[].number' | sort > /tmp/existing-prs.txt
+
       - name: "Run Claude Code on repository"
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -143,3 +149,70 @@ jobs:
           claude -p "$PROMPT" \
             --model claude-opus-4-6 \
             --dangerously-skip-permissions
+
+      - name: "Capture new PR URL"
+        if: always()
+        id: capture-pr
+        env:
+          GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+        run: |
+          gh pr list --repo "${{ matrix.repo }}" --state open --json number,url --jq '.[] | "\(.number) \(.url)"' > /tmp/current-prs.txt
+
+          mkdir -p pr-output
+          while read -r number url; do
+            if ! grep -q "^${number}$" /tmp/existing-prs.txt 2>/dev/null; then
+              echo "$url" >> pr-output/pr-url.txt
+            fi
+          done < /tmp/current-prs.txt
+
+          ARTIFACT_NAME="pr-url-$(echo '${{ matrix.repo }}' | tr '/' '-')"
+          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: "Upload PR URL artifact"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.capture-pr.outputs.artifact_name }}
+          path: pr-output/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  post-comment:
+    name: "Post comment with PR links"
+    needs: [check-trigger, run-on-repo]
+    if: always() && needs.check-trigger.outputs.triggered == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Download all PR URL artifacts"
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: pr-url-*
+          path: pr-urls/
+
+      - name: "Post comment on issue"
+        env:
+          GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+        run: |
+          BODY=""
+
+          if [ -d "pr-urls" ]; then
+            for file in pr-urls/*/pr-url.txt; do
+              if [ -f "$file" ]; then
+                while IFS= read -r url; do
+                  if [ -n "$url" ]; then
+                    BODY="${BODY}- ${url}"$'\n'
+                  fi
+                done < "$file"
+              fi
+            done
+          fi
+
+          if [ -z "$BODY" ]; then
+            BODY="No PRs were opened by this run."
+          else
+            BODY="PRs opened by this run:"$'\n\n'"${BODY}"
+          fi
+
+          gh issue comment 2 --repo "${{ github.repository }}" --body "$BODY"
