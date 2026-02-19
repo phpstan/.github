@@ -61,6 +61,7 @@ jobs:
         repo: ${{ fromJson(needs.list-repos.outputs.repos) }}
         exclude:
           - repo: phpstan/phpstan-shim
+          - repo: phpstan/phpstan
           - repo: phpstan/phpstan-src
           - repo: phpstan/phpstan-phar-composer-source
           - repo: phpstan/mutant-killer-infection-runner
