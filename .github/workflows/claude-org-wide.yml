@@ -65,6 +65,7 @@ jobs:
           - repo: phpstan/phpstan-src
           - repo: phpstan/phpstan-phar-composer-source
           - repo: phpstan/mutant-killer-infection-runner
+          - repo: phpstan/phpstan-php-parser
           - repo: phpstan/vim-phpstan
           - repo: phpstan/.github
     steps:
