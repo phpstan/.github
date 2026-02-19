@@ -1,6 +1,8 @@
 name: "Claude React on comment"
 
 on:
+  issues:
+    types: [opened]
   issue_comment:
     types: [created]
   pull_request_review:
