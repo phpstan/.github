@@ -135,6 +135,8 @@ jobs:
              - The PR body should clearly describe what was changed and why.
              - Do not just push a branch — always open a real, non-draft pull request so the changes can be reviewed and merged.
 
+          5. After creating the pull request, write the PR URL to the file /tmp/pr-url.txt. The gh pr create command outputs the PR URL — capture it and write it to that file. This is critical for tracking which PRs were opened across all repositories.
+
           Important:
           - Never force push or use destructive git commands.
           - Never commit files that may contain secrets (.env, credentials, etc.).
@@ -143,3 +145,52 @@ jobs:
           claude -p "$PROMPT" \
             --model claude-opus-4-6 \
             --dangerously-skip-permissions
+
+      - name: "Sanitize repo name"
+        if: always()
+        id: repo-name
+        run: echo "sanitized=$(echo '${{ matrix.repo }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: "Upload PR URL artifact"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-url-${{ steps.repo-name.outputs.sanitized }}
+          path: /tmp/pr-url.txt
+          if-no-files-found: ignore
+
+  post-comment:
+    name: "Post PR links comment"
+    needs: [run-on-repo]
+    if: always() && needs.run-on-repo.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Download all PR URL artifacts"
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pr-url-*
+          path: pr-urls
+          merge-multiple: false
+
+      - name: "Post comment with PR links"
+        env:
+          GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
+        run: |
+          # Collect all PR URLs from downloaded artifacts
+          PR_LIST=""
+          for file in pr-urls/*/pr-url.txt; do
+            if [ -f "$file" ]; then
+              while IFS= read -r url; do
+                if [ -n "$url" ]; then
+                  PR_LIST="${PR_LIST}- ${url}"$'\n'
+                fi
+              done < "$file"
+            fi
+          done
+
+          if [ -n "$PR_LIST" ]; then
+            BODY=$(printf '### PRs opened by Claude\n\n%s' "$PR_LIST")
+            gh api -X POST "repos/${{ github.repository }}/issues/2/comments" \
+              -f body="$BODY"
+          fi
