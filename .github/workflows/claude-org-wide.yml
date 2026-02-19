@@ -13,7 +13,7 @@ permissions:
 jobs:
   check-trigger:
     name: "Check trigger phrase and eligibility"
-    if: github.event.issue.number == 2
+    if: github.event.issue.number == 15
     runs-on: ubuntu-latest
     timeout-minutes: 1
     outputs:
@@ -191,6 +191,6 @@ jobs:
 
           if [ -n "$PR_LIST" ]; then
             BODY=$(printf '### PRs opened by Claude\n\n%s' "$PR_LIST")
-            gh api -X POST "repos/${{ github.repository }}/issues/2/comments" \
+            gh api -X POST "repos/${{ github.repository }}/issues/15/comments" \
               -f body="$BODY"
           fi

@@ -42,7 +42,7 @@ jobs:
   react:
     name: "React on comment"
     needs: check-trigger
-    if: needs.check-trigger.outputs.triggered == 'true' && github.event.issue.number != 2
+    if: needs.check-trigger.outputs.triggered == 'true' && github.event.issue.number != 15
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
