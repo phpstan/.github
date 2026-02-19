@@ -92,8 +92,8 @@ jobs:
 
       - name: "Configure git"
         run: |
-          git config user.name "phpstan-bot[bot]"
-          git config user.email "79867460+phpstan-bot[bot]@users.noreply.github.com"
+          git config user.name "phpstan-bot"
+          git config user.email "phpstan-bot <ondrej+phpstanbot@mirtes.cz>"
 
       - name: "Run Claude Code on repository"
         env:
