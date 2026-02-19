@@ -101,14 +101,42 @@ jobs:
           GH_TOKEN: ${{ secrets.PHPSTAN_BOT_TOKEN }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           REPO_NAME: ${{ matrix.repo }}
+          TRIGGER_PHRASE: "@phpstan-bot"
         run: |
-          PROMPT="You are working on the repository ${REPO_NAME}.
+          # Strip the trigger phrase from the comment to get the actual request
+          REQUEST=$(echo "$COMMENT_BODY" | sed "s|${TRIGGER_PHRASE}||g" | sed 's/^[[:space:]]*//')
 
-          Here is the request from the issue comment:
-          ${COMMENT_BODY}
+          PROMPT="You are an AI assistant working on the repository ${REPO_NAME}.
 
-          After making changes, you must create a pull request (not a draft) with your changes.
-          Do not just push a branch — always open a real, non-draft pull request so the changes can be reviewed and merged."
+          You are being triggered by an issue comment in the phpstan/.github repository. The comment contains a request that should be applied to this repository.
+
+          Here is the request:
+          ${REQUEST}
+
+          Follow these steps:
+
+          1. First, check if there is a CLAUDE.md file in the repository root. If it exists, read and follow its instructions and guidelines.
+
+          2. Understand the request carefully. Read any relevant code before making changes. Do not modify code you have not read.
+
+          3. Implement the requested changes:
+             - Keep changes focused and minimal — only make what was requested.
+             - Do not add unnecessary features, refactoring, or documentation beyond what was asked.
+             - Be careful not to introduce security vulnerabilities.
+             - Do not over-engineer the solution.
+
+          4. After making changes, commit and create a pull request:
+             - Stage your changes with git add.
+             - Write a clear, descriptive commit message that explains why the change was made.
+             - Push your branch and create a non-draft pull request using gh pr create.
+             - The PR title should be concise and descriptive.
+             - The PR body should clearly describe what was changed and why.
+             - Do not just push a branch — always open a real, non-draft pull request so the changes can be reviewed and merged.
+
+          Important:
+          - Never force push or use destructive git commands.
+          - Never commit files that may contain secrets (.env, credentials, etc.).
+          - Only make changes that are directly requested or clearly necessary."
 
           claude -p "$PROMPT" \
             --model claude-opus-4-6 \
