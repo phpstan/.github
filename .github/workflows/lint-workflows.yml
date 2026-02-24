@@ -39,3 +39,24 @@ jobs:
           sarif_file: "${{steps.octoscan.outputs.sarif_output}}"
           category: octoscan
           wait-for-processing: false
+
+  poutine:
+    name: Poutine
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Required for codeql-action/upload-sarif to upload SARIF files.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run Poutine
+        uses: boostsecurityio/poutine-action@v0.15.2
+
+      - name: Upload poutine SARIF file
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
+          category: poutine
+          wait-for-processing: false
