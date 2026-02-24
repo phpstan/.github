@@ -4,6 +4,9 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   check-trigger:
     name: "Check trigger phrase and eligibility"
@@ -13,6 +16,11 @@ jobs:
     outputs:
       triggered: ${{ steps.check.outputs.triggered }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
       - name: "Check for trigger phrase"
         id: check
         env:
@@ -33,6 +41,11 @@ jobs:
     outputs:
       repos: ${{ steps.list.outputs.repos }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
       - name: "List all public repositories in the organization"
         id: list
         env:
@@ -66,6 +79,11 @@ jobs:
           - repo: phpstan/vim-phpstan
           - repo: phpstan/.github
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
       - name: "Get default branch of target repository"
         id: default-branch
         env:
@@ -75,7 +93,7 @@ jobs:
           echo "branch=$default_branch" >> "$GITHUB_OUTPUT"
 
       - name: "Checkout target repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           repository: ${{ matrix.repo }}
           token: ${{ secrets.PHPSTAN_BOT_TOKEN }}
@@ -93,7 +111,7 @@ jobs:
           echo "${delimiter}" >> "$GITHUB_OUTPUT"
 
       - name: "Run Claude Code on repository"
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@35a9e0292d36f1186f5d842b14eb575074e8b450 # v1.0.57
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--model claude-opus-4-6"
@@ -141,7 +159,7 @@ jobs:
 
       - name: "Upload PR URL artifact"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pr-url-${{ steps.repo-name.outputs.sanitized }}
           path: /tmp/pr-url.txt
@@ -154,8 +172,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit
+
       - name: "Download all PR URL artifacts"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: pr-url-*
           path: pr-urls
