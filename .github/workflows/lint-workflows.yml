@@ -1,3 +1,6 @@
+# Configuration from:
+# https://github.com/johnbillion/plugin-infrastructure/blob/571cba96190304963285181e2b928d941b9ec7c4/.github/workflows/reusable-workflow-lint.yml
+
 name: Lint GitHub Actions workflows
 on:
   pull_request:
@@ -59,4 +62,32 @@ jobs:
         with:
           sarif_file: results.sarif
           category: poutine
+          wait-for-processing: false
+
+  zizmor:
+    name: Zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Required for codeql-action/upload-sarif to upload SARIF files.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7.3.0
+        with:
+          enable-cache: false
+
+      - name: Run zizmor
+        run: uvx zizmor@1.20.0 --persona=auditor --format=sarif --strict-collection . > results.sarif
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4.31.9
+        with:
+          sarif_file: results.sarif
+          category: zizmor
           wait-for-processing: false
