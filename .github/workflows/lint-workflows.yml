@@ -1,0 +1,44 @@
+name: Lint GitHub Actions workflows
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+permissions: {}
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download actionlint
+        id: get_actionlint
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+        shell: bash
+      - name: Check workflow files
+        run: |
+          echo "::add-matcher::.github/actionlint-matcher.json"
+          ${{ steps.get_actionlint.outputs.executable }} -color
+        shell: bash
+
+  octoscan:
+    name: Octoscan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Required for codeql-action/upload-sarif to upload SARIF files.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run octoscan
+        id: octoscan
+        uses: synacktiv/action-octoscan@v1
+        with:
+          filter_triggers: ''
+
+      - name: Upload SARIF file to GitHub
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: "${{steps.octoscan.outputs.sarif_output}}"
+          category: octoscan
+          wait-for-processing: false
