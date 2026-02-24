@@ -86,9 +86,11 @@ jobs:
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
           REQUEST=$(echo "$COMMENT_BODY" | sed 's|@phpstan-bot||g' | sed 's/^[[:space:]]*//')
-          echo "request<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$REQUEST" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          {
+            echo "request<<EOF"
+            echo "$REQUEST"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: "Run Claude Code on repository"
         uses: anthropics/claude-code-action@v1
